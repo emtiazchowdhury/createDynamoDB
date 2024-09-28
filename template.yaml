@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  This sam app will store college application.
+  User can submit the application via web/postman.
+  API gateway will send will trigger a lambda.
+  Lambda will store the application data to DynamoDB table.
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: python3.12
+Parameters:
+  EnvType:
+    Description: Environment type.
+    Default: dev
+    Type: String
+    AllowedValues:
+      - prod
+      - dev
+    ConstraintDescription: must specify prod or test.
+
+Conditions:
+  CreateProdResources: !Equals
+    - !Ref EnvType
+    - prod
+
+Resources:
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref EnvType
+      Description: College Application API
+      Name: CollegeApplicationAPI
+#      Policy:
+#        Statement:
+#          - Action: 'execute-api:Invoke'
+#            Effect: Allow
+#            Principal: '*'
+#            Resource: 'execute-api/*'
+#          - Action: 'execute-api:Invoke'
+#            Effect: Deny
+#            Principal: '*'
+#            Resource: 'execute-api/*'
+  CollegeApplicationApp:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      CodeUri: app
+      Description: College Application Storage
+      Architectures:
+        - x86_64
+      Tracing: Active
+      Role:
+        Fn::GetAtt:
+          - lambdadynamofullaccessRole
+          - Arn
+      Events:
+        put:
+          Type: Api
+          Properties:
+            Path: /item
+            Method: PUT
+            RestApiId:
+              Ref: ApiGatewayApi
+        get:
+          Type: Api
+          Properties:
+            Path: /item
+            Method: GET
+            RestApiId:
+              Ref: ApiGatewayApi
+  DynamoDBCreateFunction:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CollegeApplicantDatabase
+      AttributeDefinitions:
+        - AttributeName: "lastname"
+          AttributeType: "S"
+        - AttributeName: "email"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "lastname"
+          KeyType: "HASH"
+        - AttributeName: "email"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+  lambdadynamofullaccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess
+
+Outputs:
+  ApiGatewayApi:
+    Description: "API Gateway endpoint URL"
+    # yamllint disable-line rule:line-length
+    Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/"
+
+  CollegeApplicationApp:
+    Description: "Hello World Lambda Function ARN"
+    # yamllint disable-line rule:new-line-at-end-of-file
+    Value: !GetAtt CollegeApplicationApp.Arn

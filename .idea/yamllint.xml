@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="YamllintSettings">
+    <enabled>true</enabled>
+    <binPath>$USER_HOME$/AppData/Local/Programs/Python/Python312/Scripts/yamllint.exe</binPath>
+    <disabledRules>
+      <set>
+        <option value="document-start" />
+      </set>
+    </disabledRules>
+  </component>
+</project>

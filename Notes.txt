@@ -1,0 +1,7 @@
+CollegeApplicationDatabase
+Primarykey
+PartitionKey=StudentName
+SorKey=Email
+Attribute=Major
+
+
